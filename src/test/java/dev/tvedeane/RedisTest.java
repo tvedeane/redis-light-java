@@ -52,4 +52,60 @@ class RedisTest {
         assertThat(removedCount).isEqualTo(2);
         assertThat(redis.getEntry("key1").getMultipleValues()).containsOnly("value2");
     }
+
+    @Test
+    void removesNewestMatchingElements() {
+        var redis = new Redis();
+
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value2");
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value1");
+
+        var removedCount = redis.removeMultiple("key1", "value1", 2);
+        assertThat(removedCount).isEqualTo(2);
+        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value2", "value1");
+    }
+
+    @Test
+    void removesNewestMatchingElements_countHigher() {
+        var redis = new Redis();
+
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value2");
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value1");
+
+        var removedCount = redis.removeMultiple("key1", "value1", 9);
+        assertThat(removedCount).isEqualTo(3);
+        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value2");
+    }
+
+    @Test
+    void removesOldestMatchingElements() {
+        var redis = new Redis();
+
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value2");
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value1");
+
+        var removedCount = redis.removeMultiple("key1", "value1", -1);
+        assertThat(removedCount).isEqualTo(1);
+        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value1", "value1", "value2");
+    }
+
+    @Test
+    void removesOldestMatchingElements_countHigher() {
+        var redis = new Redis();
+
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value2");
+        redis.addMultiple("key1", "value1");
+        redis.addMultiple("key1", "value1");
+
+        var removedCount = redis.removeMultiple("key1", "value1", -9);
+        assertThat(removedCount).isEqualTo(3);
+        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value2");
+    }
 }

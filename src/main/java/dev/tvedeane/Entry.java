@@ -47,4 +47,18 @@ public class Entry {
     public void removeItemsMatching(String s) {
         values.removeIf(v -> v.equals(s));
     }
+
+    public void remove(String s) {
+        if (value != null) {
+            throw new IllegalStateException("Cannot remove for single value.");
+        }
+        this.values.remove(s);
+    }
+
+    public void removeAt(int i) {
+        if (value != null) {
+            throw new IllegalStateException("Cannot remove at for single value.");
+        }
+        this.values.remove(i);
+    }
 }

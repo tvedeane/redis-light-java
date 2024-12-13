@@ -34,7 +34,36 @@ public class Redis {
                 return v;
             });
             return removedCount.get();
+        } else if (count < 0) {
+            var removedCount = new AtomicInteger(0);
+            storage.computeIfPresent(key, (k, v) -> {
+                for (int i = v.getMultipleSize() - 1; i >= 0; i--) {
+                    if (removedCount.get() == -count) {
+                        break;
+                    }
+                    if (v.getMultipleValues().get(i).equals(value)) {
+                        v.removeAt(i);
+                        removedCount.addAndGet(1);
+                    }
+                }
+                return v;
+            });
+            return removedCount.get();
+        } else {
+            var removedCount = new AtomicInteger(0);
+            storage.computeIfPresent(key, (k, v) -> {
+                for (String s : v.getMultipleValues()) {
+                    if (removedCount.get() == count) {
+                        break;
+                    }
+                    if (s.equals(value)) {
+                        v.remove(s);
+                        removedCount.addAndGet(1);
+                    }
+                }
+                return v;
+            });
+            return removedCount.get();
         }
-        return -1;
     }
 }
