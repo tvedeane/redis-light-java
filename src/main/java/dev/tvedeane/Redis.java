@@ -1,13 +1,18 @@
 package dev.tvedeane;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Redis {
     private final ConcurrentHashMap<String, Entry> storage = new ConcurrentHashMap<>();
 
-    public Entry getEntry(String key) {
-        return storage.get(key);
+    public String getEntrySingle(String key) {
+        return storage.get(key).getSingleValue();
+    }
+
+    public List<String> getEntryMultiple(String key) {
+        return storage.get(key).getMultipleValues();
     }
 
     public void addSingle(String key, String value) {

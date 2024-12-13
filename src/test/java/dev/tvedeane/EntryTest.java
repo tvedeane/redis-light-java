@@ -14,4 +14,11 @@ public class EntryTest {
         assertThrows(IllegalStateException.class, () -> entry.remove("single"));
         assertThrows(IllegalStateException.class, () -> entry.removeAt(0));
     }
+
+    @Test
+    void throwsWhenUsingSingleMethodsOnMultiple() {
+        var entry = Entry.ofMultiple("multiple");
+
+        assertThrows(IllegalStateException.class, entry::getSingleValue);
+    }
 }

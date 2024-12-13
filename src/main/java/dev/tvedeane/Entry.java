@@ -23,6 +23,9 @@ public class Entry {
     }
 
     public String getSingleValue() {
+        if (values != null) {
+            throw new IllegalStateException("Cannot get single value for multiple value.");
+        }
         return value;
     }
 

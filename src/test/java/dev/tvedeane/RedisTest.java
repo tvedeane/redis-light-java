@@ -12,8 +12,8 @@ class RedisTest {
         redis.addSingle("key1", "value1");
         redis.addMultiple("key2", "value2");
 
-        assertThat(redis.getEntry("key1").getSingleValue()).isEqualTo("value1");
-        assertThat(redis.getEntry("key2").getMultipleSize()).isEqualTo(1);
+        assertThat(redis.getEntrySingle("key1")).isEqualTo("value1");
+        assertThat(redis.getEntryMultiple("key2").size()).isEqualTo(1);
     }
 
     @Test
@@ -26,7 +26,7 @@ class RedisTest {
         var removedCount2 = redis.removeMultiple("key2", "value1", 0);
         assertThat(removedCount1).isEqualTo(0);
         assertThat(removedCount2).isEqualTo(0);
-        assertThat(redis.getEntry("key1").getMultipleValues()).containsOnly("value1");
+        assertThat(redis.getEntryMultiple("key1")).containsOnly("value1");
     }
 
     @Test
@@ -37,7 +37,7 @@ class RedisTest {
 
         var removedCount = redis.removeMultiple("key1", "value1", 0);
         assertThat(removedCount).isEqualTo(1);
-        assertThat(redis.getEntry("key1").getMultipleValues()).isEmpty();
+        assertThat(redis.getEntryMultiple("key1")).isEmpty();
     }
 
     @Test
@@ -50,7 +50,7 @@ class RedisTest {
 
         var removedCount = redis.removeMultiple("key1", "value1", 0);
         assertThat(removedCount).isEqualTo(2);
-        assertThat(redis.getEntry("key1").getMultipleValues()).containsOnly("value2");
+        assertThat(redis.getEntryMultiple("key1")).containsOnly("value2");
     }
 
     @Test
@@ -64,7 +64,7 @@ class RedisTest {
 
         var removedCount = redis.removeMultiple("key1", "value1", 2);
         assertThat(removedCount).isEqualTo(2);
-        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value2", "value1");
+        assertThat(redis.getEntryMultiple("key1")).containsExactly("value2", "value1");
     }
 
     @Test
@@ -78,7 +78,7 @@ class RedisTest {
 
         var removedCount = redis.removeMultiple("key1", "value1", 9);
         assertThat(removedCount).isEqualTo(3);
-        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value2");
+        assertThat(redis.getEntryMultiple("key1")).containsExactly("value2");
     }
 
     @Test
@@ -92,7 +92,7 @@ class RedisTest {
 
         var removedCount = redis.removeMultiple("key1", "value1", -1);
         assertThat(removedCount).isEqualTo(1);
-        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value1", "value1", "value2");
+        assertThat(redis.getEntryMultiple("key1")).containsExactly("value1", "value1", "value2");
     }
 
     @Test
@@ -106,6 +106,6 @@ class RedisTest {
 
         var removedCount = redis.removeMultiple("key1", "value1", -9);
         assertThat(removedCount).isEqualTo(3);
-        assertThat(redis.getEntry("key1").getMultipleValues()).containsExactly("value2");
+        assertThat(redis.getEntryMultiple("key1")).containsExactly("value2");
     }
 }
