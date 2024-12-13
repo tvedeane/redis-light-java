@@ -8,11 +8,13 @@ public class Redis {
     private final ConcurrentHashMap<String, Entry> storage = new ConcurrentHashMap<>();
 
     public String getEntrySingle(String key) {
-        return storage.get(key).getSingleValue();
+        var entry = storage.get(key);
+        return entry != null ? entry.getSingleValue() : null;
     }
 
     public List<String> getEntryMultiple(String key) {
-        return storage.get(key).getMultipleValues();
+        var entry = storage.get(key);
+        return entry != null ? entry.getMultipleValues() : null;
     }
 
     public void addSingle(String key, String value) {

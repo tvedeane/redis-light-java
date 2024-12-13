@@ -6,6 +6,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RedisTest {
     @Test
+    void handlesNotFoundKey() {
+        var redis = new Redis();
+
+        assertThat(redis.getEntrySingle("key1")).isNull();
+        assertThat(redis.getEntryMultiple("key1")).isNull();
+    }
+
+    @Test
     void addSingleAndMultiple() {
         var redis = new Redis();
 
