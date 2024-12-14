@@ -43,44 +43,56 @@ public class Redis {
 
     public int removeMultiple(String key, String value, int count) {
         if (count == 0) {
-            var removedCount = new AtomicInteger(0);
-            storage.computeIfPresent(key, (k, v) -> {
-                var originalSize = v.getMultipleSize();
-                v.removeItemsMatching(value);
-                removedCount.set(originalSize - v.getMultipleSize());
-                return v.getMultipleValues().isEmpty() ? null : v;
-            });
-            return removedCount.get();
+            return removeAllMatching(key, value);
         } else if (count < 0) {
-            var removedCount = new AtomicInteger(0);
-            storage.computeIfPresent(key, (k, v) -> {
-                for (int i = v.getMultipleSize() - 1; i >= 0; i--) {
-                    if (removedCount.get() == -count) {
-                        break;
-                    }
-                    if (v.getMultipleValues().get(i).equals(value)) {
-                        v.removeAt(i);
-                        removedCount.addAndGet(1);
-                    }
-                }
-                return v.getMultipleValues().isEmpty() ? null : v;
-            });
-            return removedCount.get();
+            return removeOldestMatching(key, value, count);
         } else {
-            var removedCount = new AtomicInteger(0);
-            storage.computeIfPresent(key, (k, v) -> {
-                for (String s : v.getMultipleValues()) {
-                    if (removedCount.get() == count) {
-                        break;
-                    }
-                    if (s.equals(value)) {
-                        v.remove(s);
-                        removedCount.addAndGet(1);
-                    }
-                }
-                return v.getMultipleValues().isEmpty() ? null : v;
-            });
-            return removedCount.get();
+            return removeNewestMatching(key, value, count);
         }
+    }
+
+    private int removeAllMatching(String key, String value) {
+        var removedCount = new AtomicInteger(0);
+        storage.computeIfPresent(key, (k, v) -> {
+            var originalSize = v.getMultipleSize();
+            v.removeItemsMatching(value);
+            removedCount.set(originalSize - v.getMultipleSize());
+            return v.getMultipleValues().isEmpty() ? null : v;
+        });
+        return removedCount.get();
+    }
+
+    private int removeOldestMatching(String key, String value, int count) {
+        var removedCount = new AtomicInteger(0);
+        storage.computeIfPresent(key, (k, v) -> {
+            for (int i = v.getMultipleSize() - 1; i >= 0; i--) {
+                if (removedCount.get() == -count) {
+                    break;
+                }
+                if (v.getMultipleValues().get(i).equals(value)) {
+                    v.removeAt(i);
+                    removedCount.addAndGet(1);
+                }
+            }
+            return v.getMultipleValues().isEmpty() ? null : v;
+        });
+        return removedCount.get();
+    }
+
+    private int removeNewestMatching(String key, String value, int count) {
+        var removedCount = new AtomicInteger(0);
+        storage.computeIfPresent(key, (k, v) -> {
+            for (String s : v.getMultipleValues()) {
+                if (removedCount.get() == count) {
+                    break;
+                }
+                if (s.equals(value)) {
+                    v.remove(s);
+                    removedCount.addAndGet(1);
+                }
+            }
+            return v.getMultipleValues().isEmpty() ? null : v;
+        });
+        return removedCount.get();
     }
 }
