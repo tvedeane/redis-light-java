@@ -1,8 +1,15 @@
 package dev.tvedeane;
 
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 class RedisTest {
     @Test
@@ -115,5 +122,47 @@ class RedisTest {
         var removedCount = redis.removeMultiple("key1", "value1", -9);
         assertThat(removedCount).isEqualTo(3);
         assertThat(redis.getEntryMultiple("key1")).containsExactly("value2");
+    }
+
+    @Nested
+    class MultiThreading {
+        @RepeatedTest(value = 1_000)
+        void handlesAtomicGettingAndRemoval() throws InterruptedException {
+            var redis = new Redis();
+
+            for (int i = 0; i < 10; i++) {
+                redis.addMultiple("key1", "value1");
+            }
+
+            final var result = new ArrayList<String>();
+            var latch = new CountDownLatch(1);
+            var t1 = new Thread(() -> {
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                redis.removeMultiple("key1", "value1", 0);
+            });
+            var t2 = new Thread(() -> {
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                result.addAll(redis.getEntryMultiple("key1"));
+            });
+            t1.start();
+            t2.start();
+            latch.countDown();
+            t1.join();
+            t2.join();
+
+            if (!List.of(0, 10).contains(result.size())) {
+                fail("Non-atomic operation encountered, entries count: " + result.size());
+            }
+        }
     }
 }

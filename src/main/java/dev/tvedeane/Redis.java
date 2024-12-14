@@ -3,6 +3,7 @@ package dev.tvedeane;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Redis {
     private final ConcurrentHashMap<String, Entry> storage = new ConcurrentHashMap<>();
@@ -13,8 +14,17 @@ public class Redis {
     }
 
     public List<String> getEntryMultiple(String key) {
-        var entry = storage.get(key);
-        return entry != null ? entry.getMultipleValues() : null;
+        /*
+         This approach addresses the case where another thread might clear the list
+         between the time this thread retrieves the entry from storage and subsequently
+         accesses the list (ensuring atomic operation).
+         */
+        final var result = new AtomicReference<List<String>>();
+        storage.computeIfPresent(key, (k, v) -> {
+            result.set(v.getMultipleValues());
+            return v;
+        });
+        return result.get();
     }
 
     public void addSingle(String key, String value) {
