@@ -3,6 +3,8 @@ package dev.tvedeane;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,18 +47,7 @@ class RedisTest {
     }
 
     @Test
-    void removesAllMatchingElements_sizeOne() {
-        var redis = new Redis();
-
-        redis.addMultiple("key1", "value1");
-
-        var removedCount = redis.removeMultiple("key1", "value1", 0);
-        assertThat(removedCount).isEqualTo(1);
-        assertThat(redis.getEntryMultiple("key1")).isEmpty();
-    }
-
-    @Test
-    void removesAllMatchingElements_sizeMany() {
+    void removesMatchingElements() {
         var redis = new Redis();
 
         redis.addMultiple("key1", "value1");
@@ -124,6 +115,18 @@ class RedisTest {
         assertThat(redis.getEntryMultiple("key1")).containsExactly("value2");
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 1})
+    void returnsNullWhenAllElementsRemoved(int removalCount) {
+        var redis = new Redis();
+
+        redis.addMultiple("key1", "value1");
+
+        var removedCount = redis.removeMultiple("key1", "value1", removalCount);
+        assertThat(removedCount).isEqualTo(1);
+        assertThat(redis.getEntryMultiple("key1")).isNull();
+    }
+
     @Nested
     class MultiThreading {
         @RepeatedTest(value = 1_000)
@@ -152,7 +155,10 @@ class RedisTest {
                     throw new RuntimeException(e);
                 }
 
-                result.addAll(redis.getEntryMultiple("key1"));
+                var entries = redis.getEntryMultiple("key1");
+                if (entries != null) {
+                    result.addAll(entries);
+                }
             });
             t1.start();
             t2.start();

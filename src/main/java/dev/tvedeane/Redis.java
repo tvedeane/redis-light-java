@@ -48,7 +48,7 @@ public class Redis {
                 var originalSize = v.getMultipleSize();
                 v.removeItemsMatching(value);
                 removedCount.set(originalSize - v.getMultipleSize());
-                return v;
+                return v.getMultipleValues().isEmpty() ? null : v;
             });
             return removedCount.get();
         } else if (count < 0) {
@@ -63,7 +63,7 @@ public class Redis {
                         removedCount.addAndGet(1);
                     }
                 }
-                return v;
+                return v.getMultipleValues().isEmpty() ? null : v;
             });
             return removedCount.get();
         } else {
@@ -78,7 +78,7 @@ public class Redis {
                         removedCount.addAndGet(1);
                     }
                 }
-                return v;
+                return v.getMultipleValues().isEmpty() ? null : v;
             });
             return removedCount.get();
         }
