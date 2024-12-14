@@ -6,6 +6,13 @@ This storage solution offers a thread-safe way to manage key-value pairs, where 
 - **Flexible Value Management**:
     - Add new strings to an existing list.
     - Remove strings selectively based on matching criteria:
-        - Remove all matching strings.
-        - Remove the first matching strings.
-        - Remove the last matching strings.
+        - Remove all matching strings (count == 0).
+        - Remove the first matching strings (count < 0).
+        - Remove the last matching strings (count > 0).
+    - Set an expiration time to mark the entry for removal at a specified time.
+
+### Dependencies
+
+- jUnit 5 - testing framework.
+- AssertJ - fluent assertions in tests.
+- Awaitility - testing asynchronous operations.

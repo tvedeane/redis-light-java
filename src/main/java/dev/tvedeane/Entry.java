@@ -1,11 +1,13 @@
 package dev.tvedeane;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Entry {
     private final String value;
     private final List<String> values;
+    private LocalDateTime expiryTime;
 
     public Entry(String value, List<String> values) {
         this.value = value;
@@ -63,5 +65,13 @@ public class Entry {
             throw new IllegalStateException("Cannot remove at for single value.");
         }
         this.values.remove(i);
+    }
+
+    public LocalDateTime getExpiryTime() {
+        return expiryTime;
+    }
+
+    public void setExpiryTime(LocalDateTime expiryTime) {
+        this.expiryTime = expiryTime;
     }
 }

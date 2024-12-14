@@ -1,11 +1,13 @@
 package dev.tvedeane;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -169,6 +171,73 @@ class RedisTest {
             if (!List.of(0, 10).contains(result.size())) {
                 fail("Non-atomic operation encountered, entries count: " + result.size());
             }
+        }
+    }
+
+    @Nested
+    class Expiration {
+        @Test
+        void returnsNullOnGettingExpiredEntryAndRemovesIt() {
+            var redis = new Redis();
+
+            redis.addMultiple("key1", "value1");
+            redis.addSingle("key2", "value2");
+            redis.setExpiryTime("key1", LocalDateTime.now().minusSeconds(1));
+            redis.setExpiryTime("key2", LocalDateTime.now().minusSeconds(1));
+
+            assertThat(redis.getEntryMultiple("key1")).isNull();
+            assertThat(redis.getEntryMultiple("key2")).isNull();
+            assertThat(redis.getStorageSize()).isEqualTo(0);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = {-1, 0, 1})
+        void returns0WhenRemovingOnExpiredEntry(int removalCount) {
+            var redis = new Redis();
+
+            redis.addMultiple("key1", "value1");
+            redis.setExpiryTime("key1", LocalDateTime.now().minusSeconds(1));
+
+            var removedCount = redis.removeMultiple("key1", "value1", removalCount);
+            assertThat(removedCount).isEqualTo(0);
+            assertThat(redis.getEntryMultiple("key1")).isNull();
+            assertThat(redis.getStorageSize()).isEqualTo(0);
+        }
+
+        @Test
+        void replacesValuesWhenAddingToExpiredEntry() {
+            var redis = new Redis();
+
+            redis.addMultiple("key1", "value1");
+            redis.setExpiryTime("key1", LocalDateTime.now().minusSeconds(1));
+
+            redis.addMultiple("key1", "value2");
+            assertThat(redis.getEntryMultiple("key1")).containsOnly("value2");
+        }
+
+        @Test
+        void returnsValueWhenExpiryDateRefreshed() {
+            var redis = new Redis();
+
+            redis.addMultiple("key1", "value1");
+            redis.addSingle("key2", "value2");
+            redis.setExpiryTime("key1", LocalDateTime.now().minusMinutes(1));
+            redis.setExpiryTime("key2", LocalDateTime.now().minusMinutes(1));
+
+            redis.setExpiryTime("key1", LocalDateTime.now().plusHours(1));
+            redis.setExpiryTime("key2", LocalDateTime.now().plusHours(1));
+            assertThat(redis.getEntryMultiple("key1")).containsOnly("value1");
+            assertThat(redis.getEntrySingle("key2")).isEqualTo("value2");
+        }
+
+        @Test
+        void removesExpiredEntriesAutomatically() {
+            var redis = new Redis(1);
+
+            redis.addMultiple("key1", "value1");
+            redis.setExpiryTime("key1", LocalDateTime.now().minusMinutes(1));
+
+            Awaitility.await().until(() -> redis.getStorageSize() == 0);
         }
     }
 }
