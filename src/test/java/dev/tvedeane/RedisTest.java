@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RedisTest {
     @Test
@@ -239,5 +240,17 @@ class RedisTest {
 
             Awaitility.await().until(() -> redis.getStorageSize() == 0);
         }
+    }
+
+    @Test
+    void throwsExceptionOnTypeMismatch() {
+        var redis = new Redis(1);
+
+        redis.addSingle("key1", "value");
+        redis.addMultiple("key2", "value");
+
+        assertThrows(IllegalStateException.class, () -> redis.getEntrySingle("key2"));
+        assertThrows(IllegalStateException.class, () -> redis.getEntryMultiple("key1"));
+        assertThrows(IllegalStateException.class, () -> redis.removeMultiple("key1", "", 0));
     }
 }

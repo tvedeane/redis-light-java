@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Redis {
-    private final ConcurrentHashMap<String, Entry> storage = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ExpiringEntry> storage = new ConcurrentHashMap<>();
     private final ScheduledExecutorService cleanupExecutor = Executors.newSingleThreadScheduledExecutor();
 
     public Redis() {
@@ -53,8 +53,11 @@ public class Redis {
             if (isEntryExpired(entry)) {
                 return null;
             }
-            result.set(entry.getSingleValue());
-            return entry;
+            if (entry instanceof SingleEntry e) {
+                result.set(e.getSingleValue());
+                return e;
+            }
+            throw new IllegalStateException("Cannot get multiple size for single value.");
         });
         return result.get();
     }
@@ -65,8 +68,11 @@ public class Redis {
             if (isEntryExpired(entry)) {
                 return null;
             }
-            result.set(entry.getMultipleValues());
-            return entry;
+            if (entry instanceof MultipleEntry e) {
+                result.set(e.getMultipleValues());
+                return entry;
+            }
+            throw new IllegalStateException("Cannot get single value for multiple value.");
         });
         return result.get();
     }
@@ -80,36 +86,42 @@ public class Redis {
             if (entry == null || isEntryExpired(entry)) {
                 return Entry.ofMultiple(value);
             }
-            entry.addMultiple(value);
-            return entry;
+            if (entry instanceof MultipleEntry e) {
+                e.addMultiple(value);
+                return e;
+            }
+            throw new IllegalStateException("Cannot add multiple for single value.");
         });
     }
 
     public int removeMultiple(String key, String value, int count) {
         var removedCount = new AtomicInteger(0);
         storage.computeIfPresent(key, (k, entry) -> {
-            if (isEntryExpired(entry)) {
-                return null;
+            if (entry instanceof MultipleEntry e) {
+                if (isEntryExpired(entry)) {
+                    return null;
+                }
+                if (count == 0) {
+                    return removeAllMatching(value, e, removedCount);
+                } else if (count < 0) {
+                    return removeOldestMatching(value, e, count, removedCount);
+                } else {
+                    return removeNewestMatching(value, e, count, removedCount);
+                }
             }
-            if (count == 0) {
-                return removeAllMatching(value, entry, removedCount);
-            } else if (count < 0) {
-                return removeOldestMatching(value, entry, count, removedCount);
-            } else {
-                return removeNewestMatching(value, entry, count, removedCount);
-            }
+            throw new IllegalStateException("Cannot remove items for single value.");
         });
         return removedCount.get();
     }
 
-    private Entry removeAllMatching(String value, Entry entry, AtomicInteger removedCount) {
+    private MultipleEntry removeAllMatching(String value, MultipleEntry entry, AtomicInteger removedCount) {
         var originalSize = entry.getMultipleSize();
         entry.removeItemsMatching(value);
         removedCount.set(originalSize - entry.getMultipleSize());
         return entry.getMultipleValues().isEmpty() ? null : entry;
     }
 
-    private Entry removeOldestMatching(String value, Entry entry, int count, AtomicInteger removedCount) {
+    private MultipleEntry removeOldestMatching(String value, MultipleEntry entry, int count, AtomicInteger removedCount) {
         for (int i = entry.getMultipleSize() - 1; i >= 0; i--) {
             if (removedCount.get() == -count) {
                 break;
@@ -122,7 +134,7 @@ public class Redis {
         return entry.getMultipleValues().isEmpty() ? null : entry;
     }
 
-    private Entry removeNewestMatching(String value, Entry entry, int count, AtomicInteger removedCount) {
+    private MultipleEntry removeNewestMatching(String value, MultipleEntry entry, int count, AtomicInteger removedCount) {
         for (String s : entry.getMultipleValues()) {
             if (removedCount.get() == count) {
                 break;
@@ -142,7 +154,7 @@ public class Redis {
         });
     }
 
-    private static boolean isEntryExpired(Entry entry) {
+    private static boolean isEntryExpired(ExpiringEntry entry) {
         var expiryTime = entry.getExpiryTime();
         if (expiryTime == null) {
             return false;
